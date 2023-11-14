@@ -11,7 +11,8 @@ app.get("/", (req, res) => {
   res.send("Whiteboard sharing app");
 });
 
-let roomIdGlobal, imgURLGlobal;
+let roomIdGlobal;
+
 io.on("connection", (socket) => {
   const socketId = socket.id;
   socket.on("userJoined", (data) => {
@@ -23,20 +24,16 @@ io.on("connection", (socket) => {
     socket.emit("userIsJoined", { success: true, data, users });
     socket.broadcast.to(roomId).emit("userJoinedMessageBroadcasted", name);
     socket.broadcast.to(roomId).emit("allUsers", users);
-    socket.broadcast.to(roomId).emit("whiteboardDataResponse", {
-      imgURL: imgURLGlobal,
-    });
-  });
-  socket.on("whiteboardData", (data) => {
-    imgURLGlobal = data;
-    socket.broadcast.to(roomIdGlobal).emit("whiteboardDataResponse", {
-      imgURL: data,
+
+    socket.on("whiteboardData", (data) => {
+      socket.broadcast.to(roomIdGlobal).emit("whiteboardDataResponse", {
+        updatedData: data,
+      });
     });
   });
 
   socket.on("message", (data) => {
     const { message } = data;
-    console.log("msg", data);
     const user = getUser(socket.id);
     if (user) {
       socket.broadcast
@@ -48,9 +45,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     const user = getUser(socket.id);
     removeUser(socket.id);
-    console.log("dd", user);
     if (user) {
-      console.log("user", user);
       socket.broadcast
         .to(roomIdGlobal)
         .emit("userLeftMessageBroadcasted", user.name);
