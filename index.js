@@ -3,7 +3,12 @@ const app = express();
 
 const server = require("http").createServer(app);
 const { Server } = require("socket.io");
-const { addUser, removeUser, getUser } = require("./utils/users");
+const {
+  addUser,
+  removeUser,
+  getUser,
+  getUsersInRoom,
+} = require("./utils/users");
 
 const io = new Server(server);
 
@@ -20,10 +25,15 @@ io.on("connection", (socket) => {
     roomIdGlobal = roomId;
     socket.join(roomId);
     const userData = { name, roomId, user, host, presenter, socketId };
+
     const users = addUser(userData);
+    const allusers = getUsersInRoom(roomIdGlobal);
+
     socket.emit("userIsJoined", { success: true, data, users });
+
     socket.broadcast.to(roomId).emit("userJoinedMessageBroadcasted", name);
-    socket.broadcast.to(roomId).emit("allUsers", users);
+
+    socket.broadcast.to(roomId).emit("allUsers", allusers);
 
     socket.on("whiteboardData", (data) => {
       socket.broadcast.to(roomIdGlobal).emit("whiteboardDataResponse", {
@@ -45,6 +55,9 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     const user = getUser(socket.id);
     removeUser(socket.id);
+    const users = getUsersInRoom(roomIdGlobal);
+
+    socket.broadcast.to(roomIdGlobal).emit("allUsers", users);
     if (user) {
       socket.broadcast
         .to(roomIdGlobal)
