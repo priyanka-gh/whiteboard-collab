@@ -40,6 +40,22 @@ io.on("connection", (socket) => {
         updatedData: data,
       });
     });
+
+    socket.on("whiteboardUndo", ({ element }) => {
+      socket.broadcast
+        .to(roomIdGlobal)
+        .emit("whiteboardUndoBroadcast", { element });
+    });
+
+    socket.on("whiteboardRedo", ({ element }) => {
+      socket.broadcast
+        .to(roomIdGlobal)
+        .emit("whiteboardRedoBroadcast", { element });
+    });
+
+    socket.on("clearCanvas", () => {
+      socket.broadcast.to(roomIdGlobal).emit("clearCanvasBroadcast");
+    });
   });
 
   socket.on("message", (data) => {
